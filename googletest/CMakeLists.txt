@@ -105,8 +105,12 @@ target_link_libraries(gtest_main gtest)
 # to the targets for when we are part of a parent build (ie being pulled
 # in via add_subdirectory() rather than being a standalone build).
 if (DEFINED CMAKE_VERSION AND NOT "${CMAKE_VERSION}" VERSION_LESS "2.8.11")
-  target_include_directories(gtest      SYSTEM INTERFACE "${gtest_SOURCE_DIR}/include")
-  target_include_directories(gtest_main SYSTEM INTERFACE "${gtest_SOURCE_DIR}/include")
+  target_include_directories(gtest      SYSTEM INTERFACE
+    $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}>)
+  target_include_directories(gtest_main SYSTEM INTERFACE
+    $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}>)
 endif()
 
 ########################################################################
@@ -114,11 +118,37 @@ endif()
 # Install rules
 if(INSTALL_GTEST)
   install(TARGETS gtest gtest_main
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    EXPORT gtest-target
+    RUNTIME DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}"
+    ARCHIVE DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
   install(DIRECTORY "${gtest_SOURCE_DIR}/include/gtest"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
+  
+
+  export(TARGETS gtest gtest_main
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/gtest-target.cmake")
+  install(EXPORT gtest-target
+    DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/cmake")
+  
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/gtest-config-version.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+  )
+  
+  configure_package_config_file(
+    cmake/config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/gtest-config.cmake"
+    INSTALL_DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/cmake"
+  )
+  
+  install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/gtest-config.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/gtest-config-version.cmake
+    DESTINATION ${GOOGLETEST_INSTALL_PREFIX}/cmake
+  )
 
   # configure and install pkgconfig files
   configure_file(
@@ -130,7 +160,7 @@ if(INSTALL_GTEST)
     "${CMAKE_BINARY_DIR}/gtest_main.pc"
     @ONLY)
   install(FILES "${CMAKE_BINARY_DIR}/gtest.pc" "${CMAKE_BINARY_DIR}/gtest_main.pc"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+    DESTINATION "${GOOGLETEST_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endif()
 
 ########################################################################
