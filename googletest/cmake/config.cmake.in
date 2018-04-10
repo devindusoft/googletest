@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+# @PROJECT_NAME@ package configuration
+
+get_filename_component(_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+include("${_DIR}/gtest-target.cmake")
+check_required_components("gtest")
+
